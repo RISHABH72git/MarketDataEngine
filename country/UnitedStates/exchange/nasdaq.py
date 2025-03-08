@@ -65,11 +65,53 @@ class NasdaqAPI:
         """Fetch details of total returns for a indices."""
         return self.fetch_data("/quote/list-type/totalreturns")
 
+    def get_52_week_high_low(self, exchange="q", status="Low", limit=99999, sort_column="symbol", sort_order="ASC"):
+        """
+        Fetches 52-week high/low data from Nasdaq.
+
+        :param exchange: Stock exchange (default is "q" for NASDAQ, 14 for NYSE, 1 for AMEX).
+        :param status: "Hi" or "Low" (default is "Low").
+        :param limit: Number of records to fetch (default is 99999).
+        :param sort_column: Column to sort by (default is "symbol").
+        :param sort_order: "ASC" or "DESC" (default is "ASC").
+        :return: JSON response or None if the request fails.
+        """
+        params = {
+            "queryString": f"exchange={exchange}|status={status}",
+            "limit": limit,
+            "sortColumn": sort_column,
+            "sortOrder": sort_order
+        }
+        return self.fetch_data("quote/list-type/FIFTYTWOWEEKHILOW", params)
+
+    def fetch_latest_news(self, offset=0, limit=20):
+        """
+        Fetches the latest news from Nasdaq.
+
+        :param offset: The starting point for fetching news (default is 0).
+        :param limit: Number of news articles to fetch (default is 8).
+        :return: JSON response or None if the request fails.
+        """
+        params = {"offset": offset, "limit": limit}
+        return self.fetch_data("news/topic/latestnews", params)
+
+    def fetch_trending_articles(self, topic="all"):
+        """
+        Fetches trending articles from Nasdaq.
+
+        :param topic: The category of articles to fetch (default is 'all').
+        :return: JSON response or None if the request fails.
+        """
+        params = {"topic": topic}
+        return self.fetch_data("ga/trending-articles", params)
+
 
 if __name__ == "__main__":
     nasdaq_api = NasdaqAPI()
-    total_returns = nasdaq_api.indices_total_returns()
-    print(total_returns)
+    # data = nasdaq_api.get_52_week_high_low(status="Hi", exchange="14")
+    # print(data)
+    # total_returns = nasdaq_api.indices_total_returns()
+    # print(total_returns)
     # market_info = nasdaq_api.market_info()
     # print("market info ", market_info)
     #
@@ -87,3 +129,7 @@ if __name__ == "__main__":
     #
     # economic_calendar = nasdaq_api.get_economic_calendar("2025-03-04")
     # print("economic_calendar:", economic_calendar)
+    # latest_news = nasdaq_api.fetch_latest_news()
+    # print(latest_news)
+    trending_articles = nasdaq_api.fetch_trending_articles()
+    print(trending_articles)

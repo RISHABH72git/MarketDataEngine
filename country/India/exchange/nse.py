@@ -6,43 +6,43 @@ class NSEAPI:
     BASE_URL = "https://www.nseindia.com/api"
 
     def __init__(self):
-        """Initialize session with necessary headers."""
         self.session = requests.Session()
+        self._set_headers()
+        self._initialize_session()
+
+    def _set_headers(self):
         self.headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
-                          "Chrome/119.0.0.0 Safari/537.36",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                          "(KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
             "Accept": "application/json, text/plain, */*",
             "Accept-Language": "en-US,en;q=0.9",
             "Referer": "https://www.nseindia.com/",
             "Connection": "keep-alive",
+            "Host": "www.nseindia.com"
         }
         self.session.headers.update(self.headers)
 
-        # Initialize session to get cookies
-        self._initialize_session()
-
     def _initialize_session(self):
-        """Visit NSE homepage to get cookies and bypass bot protection."""
+        """Visit NSE homepage to establish cookies and bypass protection."""
         try:
             print("Initializing session...")
-            self.session.get("https://www.nseindia.com", timeout=5)
-            time.sleep(1)  # Delay to avoid bot detection
+            self.session.get("https://www.nseindia.com", timeout=10)
+            time.sleep(3)  # Increased delay to allow all protections to pass
             print("Session initialized successfully.")
         except requests.RequestException as e:
             print(f"Failed to initialize session: {e}")
 
     def _fetch_data(self, endpoint, params=None):
-        """Fetch data from NSE API endpoint."""
+        """Fetch data from NSE API endpoint with retry mechanism."""
         url = f"{self.BASE_URL}/{endpoint}"
         try:
-            response = self.session.get(url, params=params, timeout=10)
+            response = self.session.get(url, params=params, headers=self.headers, timeout=10)
 
-            # If NSE blocks the request, refresh session and retry
-            if response.status_code == 401:
-                print("Unauthorized access, refreshing session...")
+            if response.status_code == 401 or "html" in response.text.lower():
+                print("Unauthorized access or blocked, refreshing session...")
                 self._initialize_session()
-                time.sleep(2)
-                response = self.session.get(url, params=params, timeout=10)
+                time.sleep(5)  # Wait for session to stabilize
+                response = self.session.get(url, params=params, headers=self.headers, timeout=10)
 
             response.raise_for_status()
             return response.json()
@@ -71,6 +71,10 @@ class NSEAPI:
         return self._fetch_data("event-calendar",
                                 params={"index": "equities", "from_date": start_date, "to_date": end_date})
 
+    def index_performances(self):
+        """Fetch NSE index data."""
+        return self._fetch_data("allIndices")
+
 
 # Usage
 if __name__ == "__main__":
@@ -95,3 +99,7 @@ if __name__ == "__main__":
     # Fetch event calendar
     event_calendar = nse_api.get_event_calendar(start_date="06-03-2025", end_date="06-03-2025")
     print(event_calendar)
+
+    # Fetch index performances
+    index_performance = nse_api.index_performances()
+    print(index_performance)
